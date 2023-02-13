@@ -1,0 +1,112 @@
+# .github/workflows/deploy.yml
+
+########################################
+# IMPORTANT: Uncomment when creating a new repo based
+#            on this template
+########################################
+
+# name: Deploy API Gateway
+# on:
+#   push:
+#     branches:
+#       - develop
+#       - staging
+#       - main
+
+# jobs:
+#   deploy:
+#     name: deploy
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: checkout repo
+#         uses: actions/checkout@v2
+
+#       - name: checkout treinta-services
+#         uses: actions/checkout@v2
+#         with:
+#          repository: 30SAS/treinta-services
+#          ref: main
+#          token: ${{ secrets.GH_PAT }}
+#          path: treinta-services
+
+#       - name: checkout treinta-services-deploy
+#         uses: actions/checkout@v2
+#         with:
+#          repository: 30SAS/treinta-services-deploy
+#          ref: main
+#          token: ${{ secrets.GH_PAT }}
+#          path: treinta-deploy
+
+#       - name: configure aws credentials
+#         if: github.ref == 'refs/heads/develop'
+#         uses: aws-actions/configure-aws-credentials@v1
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+#           aws-region: us-west-2
+
+#       - name: configure aws credentials
+#         if: github.ref == 'refs/heads/staging'
+#         uses: aws-actions/configure-aws-credentials@v1
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_STG }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_STG }}
+#           aws-region: us-west-2
+
+#       - name: configure aws credentials
+#         uses: aws-actions/configure-aws-credentials@v1
+#         if: github.ref == 'refs/heads/main' 
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+#           aws-region: us-west-2
+
+#       - name: login to amazon ecr
+#         id: login-ecr
+#         uses: aws-actions/amazon-ecr-login@v1
+
+#       - name: build, tag, push, deploy
+#         if: github.ref == 'refs/heads/develop'
+#         env:
+#           GITHUB_REPOSITORY: ${{ github.repository }}
+#           NPM_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+#           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+#           ECR_REPOSITORY: ${{ github.event.repository.name }}
+#           IMAGE_TAG: ${{ github.sha }}
+#           ENVIRONMENT: dev
+#         run: |
+#           bash treinta-deploy/github_actions/deploy_actions_$ENVIRONMENT.sh
+
+#       - name: build, tag, push, deploy
+#         if: github.ref == 'refs/heads/staging'
+#         env:
+#           GITHUB_REPOSITORY: ${{ github.repository }}
+#           NPM_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+#           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+#           ECR_REPOSITORY: ${{ github.event.repository.name }}
+#           IMAGE_TAG: ${{ github.sha }}
+#           ENVIRONMENT: stg
+#         run: |
+#           bash treinta-deploy/github_actions/deploy_actions_$ENVIRONMENT.sh
+
+#       - name: build, tag, push, deploy
+#         if: github.ref == 'refs/heads/main'
+#         env:
+#           GITHUB_REPOSITORY: ${{ github.repository }}
+#           NPM_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+#           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+#           ECR_REPOSITORY: ${{ github.event.repository.name }}
+#           IMAGE_TAG: ${{ github.sha }}
+#           ENVIRONMENT: prd
+#         run: |
+#           bash treinta-deploy/github_actions/deploy_actions_$ENVIRONMENT.sh
+
+#       - name: slack notify
+#         if: always()
+#         uses: rtCamp/action-slack-notify@v2.2.0
+#         env:
+#           SLACK_USERNAME: CD Bot
+#           SLACK_ICON_EMOJI: ':bell:'
+#           SLACK_COLOR: ${{ job.status }}
+#           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}

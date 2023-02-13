@@ -1,0 +1,223 @@
+{
+  "version": 3,
+  "timeout": "3000ms",
+  "cache_ttl": "0s",
+  "output_encoding": "json",
+  "name": "pos-api-gateway ",
+  "port": 8080,
+  "endpoints": [
+    {
+      "endpoint": "/health",
+      "input_headers": ["*"],
+      "backend": [
+        {
+          "url_pattern": "/__health",
+          "host": ["{{ .services.localhost }}"]
+        }
+      ]
+    },
+    {
+      "@comments": "Proxy from /api/posts/ to https://jsonplaceholder.typicode.com/posts",
+      "endpoint": "/api/posts/",
+      "method": "GET",
+      "output_encoding": "json-collection",
+      "backend": [
+        {
+          "url_pattern": "/posts",
+          "encoding": "safejson",
+          "method": "GET",
+          "disable_host_sanitize": false,
+          "host": ["{{ .services.json_placeholder }}"],
+          "is_collection": true
+        }
+      ],
+      "extra_config": {}
+    },
+    {
+      "@comments":"Proxy with query params",
+      "endpoint": "/api/posts/{id}",
+      "method": "GET",
+      "output_encoding": "json",
+      "backend": [
+        {
+          "url_pattern": "/posts/{id}",
+          "encoding": "json",
+          "sd": "static",
+          "method": "GET",
+          "disable_host_sanitize": false,
+          "host": [
+            "{{ .services.json_placeholder }}"
+          ]
+        }
+      ],
+      "input_query_strings":[
+        "id"
+      ]
+    },
+    {
+      "@comments":"Proxy with headers",
+      "endpoint": "/api/posts/headers",
+      "method": "GET",
+      "output_encoding": "json",
+      "backend": [
+        {
+          "url_pattern": "/posts/",
+          "encoding": "json",
+          "sd": "static",
+          "method": "GET",
+          "disable_host_sanitize": false,
+          "host": [
+            "{{ .services.json_placeholder }}"
+          ],
+          "is_collection": true,
+          "target": "",
+          "group": "",
+          "mapping": {
+            "collection": "posts"
+          }
+        }
+      ],
+      "input_headers":[
+        "x-api-request"
+      ]
+    },
+    {
+      "@comments":"This endpoint merge two responses post + comment, rename field with maaping, and group response",
+      "endpoint": "/api/merge/{postId}/{commentId}",
+      "method": "GET",
+      "output_encoding": "json",
+      "backend": [
+        {
+          "url_pattern": "/comments/{commentId}",
+          "encoding": "json",
+          "method": "GET",
+          "host": [
+            "{{ .services.json_placeholder }}"
+          ],
+          "group": "comments"
+        },
+        {
+          "url_pattern": "/posts/{postId}",
+          "encoding": "json",
+          "method": "GET",
+          "host": [
+            "{{ .services.json_placeholder }}"
+          ],
+          "mapping":{
+            "title":"titleCustom"
+          }
+        }
+      ]
+    },
+    {
+      "@comments":"This endpoint get the address response attribute data.",
+      "endpoint": "/api/users/target",
+      "method": "GET",
+      "output_encoding": "json",
+      "backend": [
+        {
+          "url_pattern": "/users/2",
+          "encoding": "json",
+          "method": "GET",
+          "host": [
+            "{{ .services.json_placeholder }}"
+          ],
+          "target": "address"
+        }
+      ]
+    },
+    {
+      "@comments":"This endpoint create post.",
+      "endpoint": "/api/posts",
+      "method": "POST",
+      "output_encoding": "json",
+      "backend": [
+        {
+          "url_pattern": "/posts",
+          "encoding": "json",
+          "method": "POST",
+          "host": [
+            "{{ .services.json_placeholder }}"
+          ]
+        }
+      ]
+    },
+    {
+      "@comments":"Proxy endpoint get to post.",
+      "endpoint": "/api/posts/create",
+      "method": "GET",
+      "output_encoding": "json",
+      "backend": [
+        {
+          "url_pattern": "/posts",
+          "encoding": "json",
+          "method": "POST",
+          "host": [
+            "{{ .services.json_placeholder }}"
+          ],
+          "extra_config": {
+            "modifier/lua-backend": {
+              "pre": "print('Backend response, pre-logic:'); local r = request.load(); print(r:body('{\"title\": \"hola\"}')); print(r:body())"
+            }
+      }
+        }
+      ]
+    },
+    {
+      "@comments":"This endpoint use internal cache and set rate limit",
+      "endpoint": "/api/users/{userId}/cache",
+      "method": "GET",
+      "output_encoding": "json",
+      "backend": [
+        {
+          "url_pattern": "/users/{userId}",
+          "encoding": "json",
+          "method": "GET",
+          "host": [
+            "{{ .services.json_placeholder }}"
+          ],
+          "extra_config":{
+            "qos/http-cache":{
+              "shared":true
+            }
+          }
+        }
+      ],
+      "extra_config":{
+        "qos/ratelimit/router": {
+          "max_rate": 2,
+          "client_max_rate": 1,
+          "strategy": "ip"
+        }
+      }
+    }
+  ],
+  "extra_config": {
+    "telemetry/metrics": {
+      "collection_time": "60s",
+      "proxy_disabled": false,
+      "router_disabled": false,
+      "backend_disabled": false,
+      "endpoint_disabled": false,
+      "listen_address": ":8090"
+    },
+    "telemetry/logging": {
+      "level": "DEBUG",
+      "prefix": "[KRAKEND]",
+      "syslog": false,
+      "stdout": true
+    },
+    "telemetry/opencensus": {
+      "exporters": {
+        "prometheus": {
+          "port": 9091,
+          "namespace": "krakend",
+          "tag_host": true,
+          "tag_path": true,
+          "tag_method": true,
+          "tag_statuscode": true
+        }
+      }
+    }
+  }
+}
